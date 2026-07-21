@@ -95,8 +95,11 @@ class PublishingEngine:
         self._platform: PropertyOryxPlatform | None = None
         self._platform_credential = ""
 
-        for name, cls in available_platforms().items():
+        registered = available_platforms()
+        for name, cls in registered.items():
             self.platforms.ensure(name, cls.display_name)
+        # Drop platform rows left over from earlier builds (e.g. Qatar Living).
+        self.platforms.prune_except(set(registered))
 
     # ------------------------------------------------------------- credentials
 

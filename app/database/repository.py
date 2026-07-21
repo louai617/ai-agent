@@ -320,6 +320,14 @@ class PlatformRepository:
             if record is None:
                 s.add(PlatformRecord(name=name, display_name=display_name))
 
+    def prune_except(self, names: set[str]) -> int:
+        """Delete platform rows whose name is not in ``names`` (the registry)."""
+        with session_scope() as s:
+            stale = s.scalars(select(PlatformRecord).where(PlatformRecord.name.notin_(names))).all()
+            for record in stale:
+                s.delete(record)
+            return len(stale)
+
     def list(self) -> list[PlatformRecord]:
         with session_scope() as s:
             return list(s.scalars(select(PlatformRecord).order_by(PlatformRecord.name)).all())

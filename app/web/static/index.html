@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Elite Real Estate AI Publisher — Property Oryx</title>
+<style>
+  :root {
+    --bg:#12151c; --panel:#0c0f14; --card:#1a1f2b; --border:#232838;
+    --text:#e6e9ef; --muted:#9aa3b5; --accent:#7aa2ff; --accent2:#223051;
+    --ok:#4ec98a; --err:#e06c75; --warn:#e5905f; --pending:#d6a642;
+  }
+  * { box-sizing:border-box; font-family:'Segoe UI','Inter',system-ui,sans-serif; }
+  body { margin:0; background:var(--bg); color:var(--text); font-size:14px; }
+  a { color:var(--accent); }
+  header {
+    display:flex; align-items:center; gap:16px; padding:16px 24px;
+    background:var(--panel); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:5;
+  }
+  header h1 { font-size:17px; margin:0; color:var(--accent); font-weight:700; }
+  header .spacer { flex:1; }
+  .btn {
+    background:var(--accent2); color:#dfe7ff; border:1px solid #2c3c66; border-radius:8px;
+    padding:8px 14px; font-weight:600; cursor:pointer; font-size:13px;
+  }
+  .btn:hover { background:#2c3c66; }
+  .btn.success { background:#1d3b2a; border-color:#2c5940; color:#9ae6b4; }
+  .btn.warn { background:#4a3a1f; border-color:#6e582e; color:#f0d9a8; }
+  .btn.small { padding:5px 10px; font-size:12px; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  main { padding:24px; max-width:1400px; margin:0 auto; }
+  .cards { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:20px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .card .val { font-size:24px; font-weight:700; color:var(--accent); }
+  .card .lbl { font-size:12px; color:var(--muted); margin-top:4px; }
+  .grid { display:grid; grid-template-columns:2fr 1fr; gap:20px; align-items:start; }
+  @media (max-width:1000px){ .grid{grid-template-columns:1fr;} .cards{grid-template-columns:repeat(3,1fr);} }
+  .panel { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px; }
+  .panel h2 { font-size:14px; margin:0 0 12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .filters { display:flex; gap:8px; margin-bottom:12px; }
+  input, select {
+    background:#161a24; border:1px solid #2a3040; border-radius:8px; padding:7px 10px;
+    color:var(--text); font-size:13px;
+  }
+  input:focus, select:focus { outline:none; border-color:var(--accent); }
+  input.grow { flex:1; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); font-size:13px; }
+  th { color:var(--muted); font-weight:600; position:sticky; top:0; background:var(--card); }
+  .tablewrap { max-height:520px; overflow:auto; }
+  .badge { padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; white-space:nowrap; }
+  .logs { max-height:340px; overflow:auto; font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+  .logline { padding:4px 0; border-bottom:1px solid #1a1f2b; color:var(--muted); }
+  .logline .lv { font-weight:700; margin-right:6px; }
+  .muted { color:var(--muted); }
+  .row { display:flex; gap:8px; align-items:center; }
+  .kv { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #1a1f2b; }
+  #toast {
+    position:fixed; right:20px; bottom:20px; display:flex; flex-direction:column; gap:8px; z-index:20;
+  }
+  .toast {
+    background:var(--card); border:1px solid var(--border); border-left:3px solid var(--accent);
+    border-radius:8px; padding:10px 14px; min-width:220px; box-shadow:0 6px 20px rgba(0,0,0,.4);
+    animation:slidein .2s ease;
+  }
+  .toast.ok { border-left-color:var(--ok); }
+  .toast.err { border-left-color:var(--err); }
+  @keyframes slidein { from{opacity:0; transform:translateY(8px);} to{opacity:1;} }
+  .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Elite Publisher</h1>
+  <span class="muted">Property Oryx</span>
+  <span class="spacer"></span>
+  <button class="btn success" id="syncBtn">Sync From Sheet</button>
+  <button class="btn" id="publishAllBtn">Publish All Pending</button>
+  <button class="btn warn" id="pauseBtn">Pause</button>
+</header>
+
+<main>
+  <div class="cards" id="cards"></div>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <h2>Properties</h2>
+        <div class="filters">
+          <input class="grow" id="search" placeholder="Search title, ID, location…" />
+          <select id="statusFilter">
+            <option value="">All statuses</option>
+            <option>Pending</option><option>Publishing</option><option>Published</option>
+            <option>Failed</option><option>Needs Review</option><option>Archived</option>
+          </select>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Ref</th><th>Status</th><th>Title</th><th>Type</th><th>Beds</th>
+              <th>Price</th><th>Location</th><th></th>
+            </tr></thead>
+            <tbody id="propRows"><tr><td colspan="8" class="muted">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>API Key</h2>
+        <div id="keyStatus" class="muted" style="margin-bottom:8px;">Checking…</div>
+        <div class="row" style="margin-bottom:8px;">
+          <input class="grow" id="apiKey" type="password" placeholder="Paste Property Oryx API key" />
+        </div>
+        <div class="row">
+          <button class="btn success small" id="saveKeyBtn">Save</button>
+          <button class="btn small" id="testKeyBtn">Test Connection</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Platform Status</h2>
+        <div id="platforms"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Recent Activity</h2>
+        <div class="logs" id="logs"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const STATUS_COLORS = {
+  Pending:"#d6a642", Publishing:"#7aa2ff", Published:"#4ec98a", Failed:"#e06c75",
+  "Needs Review":"#e5905f", Archived:"#9aa3b5", Deleted:"#5a6172",
+  INFO:"#7aa2ff", WARNING:"#e5905f", ERROR:"#e06c75",
+};
+let paused = false;
+
+function toast(msg, kind="") {
+  const el = document.createElement("div");
+  el.className = "toast " + kind;
+  el.textContent = msg;
+  document.getElementById("toast").appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || res.statusText);
+  return data;
+}
+
+function badge(text) {
+  const c = STATUS_COLORS[text] || "#9aa3b5";
+  return `<span class="badge" style="background:${c}22;color:${c}">${text}</span>`;
+}
+
+function card(val, lbl) {
+  return `<div class="card"><div class="val">${val}</div><div class="lbl">${lbl}</div></div>`;
+}
+
+async function loadOverview() {
+  try {
+    const o = await api("/api/overview");
+    const s = o.stats;
+    document.getElementById("cards").innerHTML =
+      card(s.published_today, "Published Today") +
+      card(s.failed_today, "Failed Today") +
+      card(s.pending, "Pending") +
+      card(Math.round(s.success_rate) + "%", "Success Rate") +
+      card(Math.round(s.avg_publish_seconds) + "s", "Avg Publish Time") +
+      card(o.running_jobs, "Running Jobs");
+
+    paused = o.is_paused;
+    const pb = document.getElementById("pauseBtn");
+    pb.textContent = paused ? "Resume" : "Pause";
+    pb.classList.toggle("success", paused);
+    pb.classList.toggle("warn", !paused);
+
+    document.getElementById("platforms").innerHTML = o.platforms.map(p => `
+      <div class="kv">
+        <span><span class="dot" style="background:${p.enabled ? '#4ec98a' : '#9aa3b5'}"></span>${p.name}</span>
+        <span class="muted">${p.consecutive_failures ? p.consecutive_failures + " fails" : "OK"}</span>
+      </div>`).join("");
+
+    const ks = document.getElementById("keyStatus");
+    ks.innerHTML = o.has_api_key
+      ? '<span style="color:#4ec98a">● API key configured</span>'
+      : '<span style="color:#e06c75">● No API key — add one below</span>';
+  } catch (e) { /* keep last render */ }
+}
+
+async function loadProperties() {
+  const q = new URLSearchParams();
+  const s = document.getElementById("search").value.trim();
+  const st = document.getElementById("statusFilter").value;
+  if (s) q.set("search", s);
+  if (st) q.set("status", st);
+  try {
+    const rows = await api("/api/properties?" + q.toString());
+    const tb = document.getElementById("propRows");
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="8" class="muted">No properties</td></tr>'; return; }
+    tb.innerHTML = rows.map(p => `
+      <tr>
+        <td>${p.ref}</td>
+        <td>${badge(p.status)}</td>
+        <td>${p.listing_url ? `<a href="${p.listing_url}" target="_blank">${p.title || '(untitled)'}</a>` : (p.title || '<span class="muted">(auto)</span>')}</td>
+        <td>${p.type || '-'}</td>
+        <td>${p.bedrooms ?? '-'}</td>
+        <td>${p.price}</td>
+        <td>${p.location || '-'}</td>
+        <td><button class="btn small" onclick="publishOne(${p.id})">Publish</button></td>
+      </tr>`).join("");
+  } catch (e) { toast(e.message, "err"); }
+}
+
+async function loadLogs() {
+  try {
+    const logs = await api("/api/logs?limit=40");
+    document.getElementById("logs").innerHTML = logs.map(l => {
+      const c = STATUS_COLORS[l.level] || "#9aa3b5";
+      return `<div class="logline"><span class="lv" style="color:${c}">${l.level}</span>${l.time} — ${l.message}</div>`;
+    }).join("");
+  } catch (e) {}
+}
+
+async function publishOne(id) {
+  try { await api(`/api/properties/${id}/publish`, {method:"POST"}); toast("Queued for publishing", "ok"); refresh(); }
+  catch (e) { toast(e.message, "err"); }
+}
+
+document.getElementById("syncBtn").onclick = async () => {
+  try { const r = await api("/api/sync", {method:"POST"}); toast(`Synced — ${r.enqueued} queued`, "ok"); refresh(); }
+  catch (e) { toast(e.message, "err"); }
+};
+document.getElementById("publishAllBtn").onclick = async () => {
+  try { const r = await api("/api/publish-all", {method:"POST"}); toast(`${r.queued} queued`, "ok"); refresh(); }
+  catch (e) { toast(e.message, "err"); }
+};
+document.getElementById("pauseBtn").onclick = async () => {
+  try {
+    const r = await api(paused ? "/api/worker/resume" : "/api/worker/pause", {method:"POST"});
+    toast(r.is_paused ? "Paused" : "Resumed", "ok"); loadOverview();
+  } catch (e) { toast(e.message, "err"); }
+};
+document.getElementById("saveKeyBtn").onclick = async () => {
+  const key = document.getElementById("apiKey").value.trim();
+  if (!key) { toast("Enter an API key", "err"); return; }
+  try {
+    await api("/api/account", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({api_key:key})});
+    document.getElementById("apiKey").value = "";
+    toast("API key saved (encrypted)", "ok"); loadOverview();
+  } catch (e) { toast(e.message, "err"); }
+};
+document.getElementById("testKeyBtn").onclick = async () => {
+  try { const r = await api("/api/account/test", {method:"POST"}); toast(`Connected as ${r.name || r.email}`, "ok"); }
+  catch (e) { toast(e.message, "err"); }
+};
+document.getElementById("search").addEventListener("input", debounce(loadProperties, 300));
+document.getElementById("statusFilter").addEventListener("change", loadProperties);
+
+function debounce(fn, ms){ let t; return (...a)=>{clearTimeout(t); t=setTimeout(()=>fn(...a),ms);}; }
+function refresh(){ loadOverview(); loadProperties(); loadLogs(); }
+
+refresh();
+setInterval(() => { loadOverview(); loadLogs(); }, 5000);
+setInterval(loadProperties, 10000);
+</script>
+</body>
+</html>

@@ -69,12 +69,28 @@ def run_gui() -> int:
     return app.exec()
 
 
+def run_web(host: str = "127.0.0.1", port: int = 8000) -> int:
+    """Start the FastAPI web dashboard (browser interface to the agent)."""
+    import uvicorn
+
+    from app.web.server import app as web_app
+
+    logger.info("Starting web dashboard on http://%s:%d", host, port)
+    uvicorn.run(web_app, host=host, port=port, log_level="info")
+    return 0
+
+
 def main() -> int:
     setup_logging()
     parser = argparse.ArgumentParser(description="Elite Real Estate AI Publisher")
     parser.add_argument("--headless", action="store_true", help="run one publish cycle without the UI")
+    parser.add_argument("--web", action="store_true", help="run the browser dashboard (FastAPI)")
+    parser.add_argument("--host", default="127.0.0.1", help="web server host (with --web)")
+    parser.add_argument("--port", type=int, default=8000, help="web server port (with --web)")
     args = parser.parse_args()
     try:
+        if args.web:
+            return run_web(args.host, args.port)
         return run_headless() if args.headless else run_gui()
     except Exception:
         logger.exception("Fatal startup error")
