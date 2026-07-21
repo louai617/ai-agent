@@ -1,0 +1,23 @@
+[project]
+name = "elite-realestate-publisher"
+version = "1.0.0"
+description = "Elite Real Estate AI Publisher - automated multi-portal real estate listing publisher"
+requires-python = ">=3.13"
+readme = "README.md"
+license = { text = "Proprietary" }
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

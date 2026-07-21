@@ -1,0 +1,17 @@
+services:
+  publisher:
+    build: .
+    image: elite-realestate-publisher:latest
+    env_file: .env
+    environment:
+      PUBLISHER_DATA_DIR: /data
+    volumes:
+      - publisher-data:/data
+      - ./config:/opt/publisher/config
+      - ./logs:/opt/publisher/logs
+      # Mount the folder that contains listing image folders referenced by the sheet
+      - ./listings:/listings
+    restart: unless-stopped
+
+volumes:
+  publisher-data:

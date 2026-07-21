@@ -1,0 +1,67 @@
+{
+  "retry": {
+    "max_attempts": 3,
+    "backoff_base_seconds": 5.0,
+    "backoff_multiplier": 2.0,
+    "backoff_max_seconds": 300.0
+  },
+  "images": {
+    "max_width": 1920,
+    "max_height": 1080,
+    "jpeg_quality": 85,
+    "max_file_size_mb": 5.0,
+    "max_images_per_listing": 30,
+    "allowed_extensions": [".jpg", ".jpeg", ".png", ".webp"]
+  },
+  "ai": {
+    "enabled": true,
+    "model": "gemini-2.5-flash",
+    "temperature": 0.7,
+    "max_tokens": 600,
+    "language": "en",
+    "title_max_chars": 80,
+    "title_min_chars": 10,
+    "description_min_chars": 50,
+    "generate_arabic": false,
+    "title_prompt": "You are an expert real estate copywriter. Write an SEO-optimized listing title. Maximum {max_chars} characters. No emojis. Professional tone. Use only the facts provided; never invent details.",
+    "description_prompt": "You are an expert real estate copywriter. Write a professional listing description in {language}. Highlight bedrooms, bathrooms, area, amenities, location and price. No emojis. Use only the facts provided; never invent details. 120-220 words."
+  },
+  "sheet": {
+    "source_type": "google",
+    "spreadsheet_id": "YOUR_SPREADSHEET_ID_HERE",
+    "worksheet_name": "Properties",
+    "excel_path": "",
+    "service_account_file": "config/service_account.json"
+  },
+  "scheduler": {
+    "enabled": false,
+    "interval": "30m",
+    "daily_time": "09:00",
+    "weekly_day": "mon"
+  },
+  "notifications": {
+    "desktop_enabled": true,
+    "email_enabled": false,
+    "email_smtp_host": "smtp.gmail.com",
+    "email_smtp_port": 587,
+    "email_from": "",
+    "email_to": [],
+    "telegram_enabled": false,
+    "telegram_chat_id": "",
+    "whatsapp_enabled": false,
+    "whatsapp_api_url": "",
+    "whatsapp_to": ""
+  },
+  "oryx": {
+    "api_base_url": "https://mqdyqyic12.execute-api.ap-southeast-1.amazonaws.com",
+    "request_timeout_s": 45,
+    "watermark_images": false,
+    "public_listing_url_template": "https://www.propertyoryx.com/property/{id}",
+    "reference_cache_seconds": 3600,
+    "default_commission": null,
+    "default_deposit": null,
+    "default_availability": null,
+    "default_agent_id": null
+  },
+  "database_path": "data/publisher.db"
+}
