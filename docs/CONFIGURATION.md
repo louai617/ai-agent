@@ -23,7 +23,7 @@ Configuration lives in two places:
 ### oryx (Property Oryx API)
 | Key | Default | Meaning |
 |---|---|---|
-| `api_base_url` | `https://mqdyqyic12.execute-api.ap-southeast-1.amazonaws.com` | API server |
+| `api_base_url` | `https://mqdyqyic12.execute-api.ap-southeast-1.amazonaws.com/prod` | API server (note the `/prod` stage — required) |
 | `request_timeout_s` | `45` | Per-request timeout |
 | `watermark_images` | `false` | Ask the API to watermark uploaded photos |
 | `public_listing_url_template` | `https://www.propertyoryx.com/property/{id}` | Used to build the Listing URL written back to the sheet |

@@ -53,7 +53,7 @@
     "whatsapp_to": ""
   },
   "oryx": {
-    "api_base_url": "https://mqdyqyic12.execute-api.ap-southeast-1.amazonaws.com",
+    "api_base_url": "https://mqdyqyic12.execute-api.ap-southeast-1.amazonaws.com/prod",
     "request_timeout_s": 45,
     "watermark_images": false,
     "public_listing_url_template": "https://www.propertyoryx.com/property/{id}",

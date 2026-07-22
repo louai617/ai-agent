@@ -146,7 +146,7 @@ class OryxConfig(BaseModel):
     in the accounts table (or the ``PROPERTYORYX_API_KEY`` environment variable).
     """
 
-    api_base_url: str = "https://mqdyqyic12.execute-api.ap-southeast-1.amazonaws.com"
+    api_base_url: str = "https://mqdyqyic12.execute-api.ap-southeast-1.amazonaws.com/prod"
     request_timeout_s: int = Field(45, ge=5, le=300)
     watermark_images: bool = False
     #: Template used to build a human-friendly listing URL for the sheet write-back.
