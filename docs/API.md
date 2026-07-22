@@ -60,8 +60,27 @@ itself, see its OpenAPI document (`GET /api-docs`) and reference data
   `ensure_content(data)` (fills empty fields, enforces min lengths, optional
   Arabic). Template fallback when AI is disabled/unavailable.
 - **ImageProcessor** (`images.py`): `process_folder(folder, ref) -> ImageBatchResult`.
-- **Sheet sources** (`sheets.py`): `create_sheet_source(config)`;
+- **Sheet sources** (`sheets.py`): `create_sheet_source(config)` → Excel-backed
   `read_properties()`, `write_back(row, values)`, `mark_posted`, `mark_failed`.
+- **Listing intake modules** (the conversational "coordinator"):
+  - `PropertyParser` (`property_parser.py`): `parse(text, base=?, property_ref=?)
+    -> ParseResult` — natural language → `PropertyData` + `provided` field set.
+  - `AmenitiesGenerator` (`amenities_generator.py`): `generate(data, area)` /
+    `ensure_amenities(data)` — context-aware amenities by type + area tier.
+  - `MissingInfoDetector` (`missing_info.py`): `detect(data, provided)
+    -> list[Question]`, `is_ready`, `format_prompt`.
+  - `CompletenessScorer` (`completeness.py`): `score(data) -> CompletenessReport`,
+    `meets_threshold(data)`.
+  - `DescriptionGenerator` (`description.py`): `ensure(data)` /
+    `build_professional_description(data)` — SEO + landmark-aware copy.
+  - `ListingCoordinator` (`coordinator.py`): `intake(text, property_ref=?)
+    -> IntakeResult`, `search(query)`, `get(ref)`; `create_coordinator(config)`.
+
+## app.storage (modular property store)
+`PropertyStore` interface (`base.py`) with `ExcelPropertyStore` (`excel_store.py`)
+— header-name mapping, dynamic columns, `read_all/get/find_by/append/update/
+search/upsert`. Concurrency-safe via `FileLock` (`locking.py`). Swap in a SQL
+`PropertyStore` later without touching callers.
 - **Notifier** (`notifications.py`): `notify`, `property_published`,
   `publish_failed`, `login_expired`.
 - **PublishingEngine** (`publisher.py`):

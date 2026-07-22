@@ -68,6 +68,11 @@ class ContentGenerator:
             else:
                 logger.warning("GEMINI_API_KEY not set - falling back to template content")
 
+    @property
+    def ai_available(self) -> bool:
+        """True when a live Gemini client is configured and enabled."""
+        return self._client is not None and self._config.enabled
+
     # ------------------------------------------------------------------ titles
 
     def generate_title(self, data: PropertyData) -> str:

@@ -27,11 +27,14 @@
     "description_prompt": "You are an expert real estate copywriter. Write a professional listing description in {language}. Highlight bedrooms, bathrooms, area, amenities, location and price. No emojis. Use only the facts provided; never invent details. 120-220 words."
   },
   "sheet": {
-    "source_type": "google",
-    "spreadsheet_id": "YOUR_SPREADSHEET_ID_HERE",
-    "worksheet_name": "Properties",
-    "excel_path": "",
-    "service_account_file": "config/service_account.json"
+    "source_type": "excel",
+    "excel_path": "data/properties.xlsx",
+    "worksheet_name": "Properties"
+  },
+  "workflow": {
+    "completeness_threshold": 90,
+    "min_amenities": 6,
+    "auto_publish": false
   },
   "scheduler": {
     "enabled": false,

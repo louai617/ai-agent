@@ -91,20 +91,43 @@ class AIConfig(BaseModel):
 
 
 class SheetConfig(BaseModel):
-    """Google Sheet / Excel data-source settings."""
+    """Property data-source settings.
 
-    source_type: str = "google"  # "google" | "excel"
-    spreadsheet_id: str = ""
-    worksheet_name: str = "Properties"
+    The primary store is a local Microsoft Excel (``.xlsx``) workbook, accessed
+    through the modular :mod:`app.storage` layer so it can be swapped for a SQL
+    backend later without touching callers. Google Sheets is no longer supported.
+    """
+
+    source_type: str = "excel"  # "excel" (default) | "sql" (future)
+    #: Path to the workbook; empty means ``<data>/properties.xlsx``.
     excel_path: str = ""
-    service_account_file: str = "config/service_account.json"
+    worksheet_name: str = "Properties"
 
     @field_validator("source_type")
     @classmethod
     def _valid_source(cls, v: str) -> str:
-        if v not in {"google", "excel"}:
-            raise ValueError("source_type must be 'google' or 'excel'")
+        if v not in {"excel", "sql"}:
+            raise ValueError("source_type must be 'excel' or 'sql'")
         return v
+
+    def resolved_excel_path(self) -> Path:
+        """Absolute workbook path, defaulting to ``<data>/properties.xlsx``."""
+        raw = (self.excel_path or "").strip()
+        if not raw:
+            return DATA_DIR / "properties.xlsx"
+        path = Path(raw)
+        return path if path.is_absolute() else APP_DIR / path
+
+
+class WorkflowConfig(BaseModel):
+    """Conversational listing-intake behaviour (parser -> validate -> store)."""
+
+    #: Publish only when the completeness score reaches this percentage.
+    completeness_threshold: int = Field(90, ge=0, le=100)
+    #: Minimum number of amenities to generate when the agent supplies none.
+    min_amenities: int = Field(6, ge=0, le=30)
+    #: Automatically enqueue a listing for publishing once it is "Ready".
+    auto_publish: bool = False
 
 
 class SchedulerConfig(BaseModel):
@@ -166,6 +189,7 @@ class AppConfig(BaseModel):
     images: ImageConfig = ImageConfig()
     ai: AIConfig = AIConfig()
     sheet: SheetConfig = SheetConfig()
+    workflow: WorkflowConfig = WorkflowConfig()
     scheduler: SchedulerConfig = SchedulerConfig()
     notifications: NotificationConfig = NotificationConfig()
     oryx: OryxConfig = OryxConfig()

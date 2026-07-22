@@ -40,6 +40,13 @@ class AccountBody(BaseModel):
     label: str = "Property Oryx"
 
 
+class IntakeBody(BaseModel):
+    """A natural-language listing message (optionally continuing a listing)."""
+
+    text: str
+    property_ref: str | None = None
+
+
 # ---------------------------------------------------------------------------
 # Serialisers (ORM -> JSON-friendly dicts)
 # ---------------------------------------------------------------------------
@@ -104,6 +111,16 @@ def create_app(engine: PublishingEngine | None = None) -> FastAPI:
 
     def get_engine() -> PublishingEngine:
         return app.state.engine
+
+    def get_coordinator():
+        """Lazily build the listing intake coordinator (shares the Excel workbook)."""
+        coordinator = getattr(app.state, "coordinator", None)
+        if coordinator is None:
+            from app.services.coordinator import create_coordinator
+
+            coordinator = create_coordinator(get_engine().config)
+            app.state.coordinator = coordinator
+        return coordinator
 
     # ---------------------------------------------------------- pages
 
@@ -200,6 +217,56 @@ def create_app(engine: PublishingEngine | None = None) -> FastAPI:
         eng.resume()
         eng.start_worker()
         return {"is_paused": eng.is_paused}
+
+    # ---------------------------------------------------------- listing intake
+
+    @app.post("/api/intake")
+    def intake(body: IntakeBody) -> dict[str, Any]:
+        """Conversational listing intake: parse -> validate -> store in Excel."""
+        text = body.text.strip()
+        if not text:
+            raise HTTPException(400, "Message text is required")
+        try:
+            result = get_coordinator().intake(text, property_ref=body.property_ref)
+        except PublisherError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return {
+            "status": result.status.value,
+            "property_ref": result.property_ref,
+            "message": result.message,
+            "questions": [{"field": q.field, "text": q.text} for q in result.questions],
+            "completeness": {
+                "percent": result.completeness.percent,
+                "categories": [
+                    {"name": c.name, "complete": c.complete, "mark": c.mark}
+                    for c in result.completeness.categories
+                ],
+            },
+            "listing": {
+                "type": result.data.property_type,
+                "bedrooms": result.data.bedrooms,
+                "location": result.data.community or result.data.location,
+                "price": result.data.price_display(),
+                "amenities": result.data.amenities,
+                "title": result.data.title,
+                "description": result.data.description,
+            },
+        }
+
+    @app.get("/api/listings/search")
+    def search_listings(q: str = "") -> list[dict[str, Any]]:
+        results = get_coordinator().search(q)
+        return [
+            {
+                "ref": p.property_ref,
+                "status": p.status,
+                "type": p.property_type,
+                "bedrooms": p.bedrooms,
+                "location": p.community or p.location,
+                "price": p.price_display(),
+            }
+            for p in results
+        ]
 
     # ---------------------------------------------------------- account
 

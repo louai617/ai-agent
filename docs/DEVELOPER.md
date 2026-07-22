@@ -8,8 +8,12 @@ app/
   core/       config (pydantic), logging, security (Fernet), exceptions
   database/   SQLAlchemy models, engine (+ additive migrations), repositories
   models/     pydantic schemas (PropertyData, PublishResult) + sheet mapping
+  domain/     Qatar knowledge base (communities/tiers/landmarks, amenity catalogs)
+  storage/    PropertyStore interface + ExcelPropertyStore + file locking
   services/   ai (Gemini), images (local pipeline), sheets, notifications,
-              publisher (orchestrator)
+              publisher (orchestrator); intake modules: property_parser,
+              amenities_generator, missing_info, completeness, description,
+              coordinator (conversational posting engine)
   platforms/  base contract + registry + propertyoryx/ (API client, reference
               mapping, image upload, platform)
   scheduler/  APScheduler wrapper
@@ -18,9 +22,41 @@ tests/        pytest suite (no network — the API is mocked)
 ```
 
 Principles applied: SOLID/OCP (new platforms register without touching engine
-code), dependency injection (`PublishingEngine` takes its collaborators),
-single source of SQL (`repository.py`), and fail-safe orchestration (one job's
-failure never kills the worker).
+code), dependency injection (`PublishingEngine` and `ListingCoordinator` take
+their collaborators), single source of SQL (`repository.py`), storage behind an
+interface (`PropertyStore`), and fail-safe orchestration (one job's failure
+never kills the worker).
+
+## Conversational listing intake
+
+`ListingCoordinator` (`services/coordinator.py`) is the "posting engine" for
+natural-language intake. Each message flows through small, single-purpose,
+independently testable modules:
+
+1. `PropertyParser` — regex + Qatar knowledge base → `PropertyData` plus the set
+   of fields the agent explicitly stated (never fabricates).
+2. `AmenitiesGenerator` — composes amenities from `base(kind) + tier(area) +
+   context`, so a luxury Pearl tower differs from a standard flat.
+3. `MissingInfoDetector` — returns *only* the genuinely missing required fields
+   as questions, adapting to apartment/villa and rent/sale.
+4. `CompletenessScorer` — weighted score across Basic/Pricing/Amenities/
+   Utilities/Images/Description; gates publishing on a configurable threshold.
+5. `DescriptionGenerator` — SEO- and landmark-aware copy (Gemini when available,
+   deterministic template otherwise).
+
+The coordinator persists progress to Excel via the modular storage layer, so
+follow-up messages enrich the same record (`intake(text, property_ref=...)`).
+Adding a new channel (WhatsApp, Telegram, CRM) only needs to call `intake`;
+swapping Excel for SQL only needs a new `PropertyStore`.
+
+## Storage abstraction
+
+`app/storage/` decouples the workflow from where data lives. `PropertyStore`
+(`base.py`) defines header-keyed CRUD + search; `ExcelPropertyStore`
+(`excel_store.py`) implements it against `.xlsx` with **dynamic columns**
+(matched by header name, auto-created on write) and **concurrency safety**
+(`FileLock` in `locking.py` — reentrant, cross-thread and cross-process, no
+extra dependency).
 
 ## Property Oryx integration
 

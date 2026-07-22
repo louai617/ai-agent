@@ -1,18 +1,49 @@
 # Elite Real Estate AI Publisher — Property Oryx
 
-A production desktop application that automatically publishes real estate
-listings from a Google Sheet (or Excel file) to **Property Oryx** via its
-official **Agents API**, with AI-generated titles and descriptions, image
-processing and upload, scheduling, retries, and full audit logging.
+A production desktop application that turns a real estate agent's plain-language
+notes into validated, publication-ready listings stored in **Microsoft Excel**,
+then publishes them to **Property Oryx** via its official **Agents API** — with
+AI-generated amenities and descriptions, image processing, scheduling, retries,
+and full audit logging.
 
 > This build targets Property Oryx only, using the official REST API — no
 > browser automation, no selectors, no CAPTCHAs. It is faster and far more
 > reliable than screen-scraping.
 
+## Conversational listing intake
+
+Instead of a rigid form, describe the property the way you'd tell a colleague:
+
+```
+> 2BHK apartment in Lusail for 8,500 QAR.
+
+The assistant understands the type, bedrooms, location and rent, generates
+realistic Lusail amenities, then asks only for what's genuinely missing:
+
+  I need a few more details before posting:
+  • Number of bathrooms?
+  • Furnished or unfurnished?
+  • Parking included?
+  • Bills included or excluded?
+  • Availability date?
+```
+
+It infers reasonable defaults, generates **context-aware amenities** (a luxury
+Pearl villa gets different amenities than a standard Old Airport flat), tracks
+**included vs excluded utilities**, computes a **completeness score**, writes a
+**professional SEO description** with nearby landmarks, and stores everything in
+Excel — publishing only once the listing clears the completeness threshold.
+
+Try it: `python main.py --intake "Furnished 1 bedroom in The Pearl"`.
+
 ## How it works
 
 ```
-Google Sheet / Excel
+Natural-language message  ──►  ListingCoordinator (posting engine)
+                                 │  parse → amenities → missing-info →
+                                 │  completeness → description
+                                 ▼
+                         Excel workbook (.xlsx, dynamic schema)
         │  (scheduler or "Run Now")
         ▼
   Sheet sync ──► SQLite (properties + priority job queue)
@@ -26,7 +57,7 @@ Google Sheet / Excel
                                             │
               create residential rental/sales listing ─► resolve listing ID
                                             │
-        Sheet write-back (Posted + Listing URL) ◄──────┘
+        Excel write-back (Posted + Listing URL) ◄──────┘
         Notifications (desktop / email / Telegram / WhatsApp)
 ```
 
@@ -47,12 +78,14 @@ Google Sheet / Excel
 
 | Area | Details |
 |---|---|
+| Intake | Natural-language parsing, context-aware amenities, missing-info questions, completeness score, AI descriptions — the "listing coordinator" (`app/services`) |
+| Storage | Microsoft Excel (`.xlsx`) with a dynamic, header-mapped schema behind a `PropertyStore` interface (SQL-swappable); concurrency-safe writes |
 | API | Official Property Oryx Agents API (`X-API-Key`); typed client for listings, uploads, reference data, dashboard, account |
 | UI | PySide6 dark-mode desktop app: Dashboard, Properties, Accounts, Logs, Scheduler, AI Settings, Statistics, Settings |
 | Auth | API key encrypted at rest (Fernet); "Test Connection" verifies it via `GET /account` |
 | Scheduler | 5 m / 10 m / 30 m / 1 h / daily / weekly / manual |
 | Queue | Priority queue with pause/resume, bulk publish, duplicate detection |
-| Reference data | Sheet text → API IDs (locations, amenities, types, availability), cached |
+| Reference data | Workbook text → API IDs (locations, amenities, types, availability), cached |
 | Logging | Rotating files + database log viewer + CSV export |
 | Notifications | Desktop tray, email (SMTP), Telegram, optional WhatsApp gateway |
 | Docker | Headless publishing container (`docker compose up`) — no browser needed |
@@ -73,7 +106,7 @@ copy .env.example .env                                # add GEMINI_API_KEY
 ```
 
 Then open **Accounts**, paste your Property Oryx API key (Test Connection to
-verify), point **Settings → Data Source** at your sheet, and press
+verify), point **Settings → Data Source** at your Excel workbook, and press
 **Properties → Sync From Sheet**.
 
 Full instructions: [docs/INSTALL.md](docs/INSTALL.md) ·
@@ -88,10 +121,17 @@ it from your Property Oryx account (Account → API key). The key is shown only
 once and replacing it invalidates the previous one. Store it on the Accounts
 page (encrypted) or in `.env` as `PROPERTYORYX_API_KEY`.
 
-## Google Sheet format
+## Excel workbook format
 
-Header row as in [examples/example_sheet.csv](examples/example_sheet.csv). The
-app maps these columns to the API. Key points:
+The property database is a local Microsoft Excel (`.xlsx`) workbook
+(`data/properties.xlsx` by default), accessed through the modular `app.storage`
+layer. **Columns are matched by header name, never by position**, so you can add
+new fields as new columns without breaking anything — the store creates missing
+columns automatically and serialises concurrent writes with a file lock. To move
+to SQL later, implement the `PropertyStore` interface; nothing else changes.
+
+A starter header row is in
+[examples/example_sheet.csv](examples/example_sheet.csv). Key points:
 
 - **Platform** — set to `propertyoryx` (this build coerces it anyway).
 - **Property Type** — mapped to an API type (`Apartment`, `Compound Villa`,
@@ -109,6 +149,11 @@ app maps these columns to the API. Key points:
 
 The app writes back `Status`, `Title`, `Description`, `Listing URL`, `Error`,
 `Updated Date`. Set `Status` to `Retry` to re-queue a failed row.
+
+The conversational intake also fills flexible fields when mentioned: `Purpose`,
+`Community`, `Building`, `Floor`, `View`, `Balcony`, `Parking`, `Plot Size`,
+`Maid Room`, `Driver Room`, `Payment Terms`, `Availability`, and
+`Utilities Included` / `Utilities Excluded`.
 
 ## Tests
 

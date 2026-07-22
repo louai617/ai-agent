@@ -46,21 +46,18 @@ class SettingsPage(QWidget):
         layout = QVBoxLayout(body)
         layout.setSpacing(14)
 
-        # --- Sheet source
-        sheet_group = QGroupBox("Data Source (Google Sheet / Excel)")
+        # --- Data source (Excel workbook)
+        sheet_group = QGroupBox("Data Source (Microsoft Excel)")
         sheet_form = QFormLayout(sheet_group)
         self.source_type = QComboBox()
-        self.source_type.addItems(["google", "excel"])
+        self.source_type.addItems(["excel"])
         self.source_type.setCurrentText(cfg.sheet.source_type)
-        self.spreadsheet_id = QLineEdit(cfg.sheet.spreadsheet_id)
         self.worksheet_name = QLineEdit(cfg.sheet.worksheet_name)
         self.excel_path = QLineEdit(cfg.sheet.excel_path)
-        self.service_account = QLineEdit(cfg.sheet.service_account_file)
+        self.excel_path.setPlaceholderText("data/properties.xlsx")
         sheet_form.addRow("Source type", self.source_type)
-        sheet_form.addRow("Spreadsheet ID", self.spreadsheet_id)
         sheet_form.addRow("Worksheet name", self.worksheet_name)
-        sheet_form.addRow("Excel path (excel mode)", self.excel_path)
-        sheet_form.addRow("Service account JSON", self.service_account)
+        sheet_form.addRow("Excel workbook path", self.excel_path)
         layout.addWidget(sheet_group)
 
         # --- Property Oryx API
@@ -148,10 +145,8 @@ class SettingsPage(QWidget):
     def _save(self) -> None:
         cfg = self._engine.config
         cfg.sheet.source_type = self.source_type.currentText()
-        cfg.sheet.spreadsheet_id = self.spreadsheet_id.text().strip()
         cfg.sheet.worksheet_name = self.worksheet_name.text().strip() or "Properties"
         cfg.sheet.excel_path = self.excel_path.text().strip()
-        cfg.sheet.service_account_file = self.service_account.text().strip()
         cfg.oryx.api_base_url = self.api_base_url.text().strip() or cfg.oryx.api_base_url
         cfg.oryx.public_listing_url_template = self.public_url_template.text().strip()
         cfg.oryx.watermark_images = self.watermark.isChecked()

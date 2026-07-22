@@ -55,8 +55,21 @@ automatically; the defaults above cover fields the sheet does not provide.
 is on, the title/description are translated to Arabic for `titleAr`/`descriptionAr`.
 
 ### sheet
-`source_type` (`google`/`excel`), `spreadsheet_id`, `worksheet_name`,
-`excel_path`, `service_account_file`.
+The property database is a local Microsoft Excel (`.xlsx`) workbook accessed
+through the modular `app.storage` layer (Google Sheets is no longer supported).
+- `source_type` — `excel` (default); `sql` is reserved for a future
+  `PropertyStore` backend.
+- `excel_path` — workbook path; empty means `<data>/properties.xlsx`.
+- `worksheet_name` — sheet/tab name (default `Properties`).
+
+The store maps columns by **header name**, not position, so new fields become new
+columns automatically and concurrent writes are serialised by a file lock.
+
+### workflow
+Conversational listing intake (`parser → validate → store`):
+- `completeness_threshold` (default 90) — publish only above this score.
+- `min_amenities` (default 6) — how many amenities to generate when none given.
+- `auto_publish` (default false) — enqueue a "Ready" listing automatically.
 
 ### scheduler
 `enabled`, `interval` (`5m`/`10m`/`30m`/`1h`/`daily`/`weekly`/`manual`),

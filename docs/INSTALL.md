@@ -5,8 +5,10 @@
 - Windows 10/11, macOS, or Linux
 - Python 3.13+
 - A Property Oryx account with an API key
-- A Google Cloud service account (for Google Sheets mode)
 - A Google Gemini API key (optional — template fallback works without it)
+
+The property database is a local Microsoft Excel (`.xlsx`) file — no Google
+account or cloud credentials are required.
 
 No browser/Playwright is needed — publishing uses the Property Oryx REST API.
 
@@ -37,16 +39,18 @@ Edit both — see [CONFIGURATION.md](CONFIGURATION.md) for every option.
    **Test Connection** to verify (`GET /account`).
    Alternatively set `PROPERTYORYX_API_KEY` in `.env` (used for headless/Docker).
 
-## 4. Google Sheets access (google mode)
+## 4. Property database (Microsoft Excel)
 
-1. In Google Cloud Console create a project and enable the **Google Sheets API**.
-2. Create a **service account**, download its JSON key, save it as
-   `config/service_account.json`.
-3. Share your spreadsheet with the service account's email (Editor).
-4. Put the spreadsheet ID into `config.json → sheet.spreadsheet_id`.
+The property database is a local Excel (`.xlsx`) workbook — no Google account or
+service credentials required.
 
-For Excel mode instead set `sheet.source_type` to `"excel"` and
-`sheet.excel_path` to the workbook path.
+1. Leave `sheet.source_type` as `"excel"`.
+2. Optionally set `sheet.excel_path` to a workbook path (default
+   `data/properties.xlsx`, created automatically on first write).
+3. Add listings conversationally — e.g.
+   `python main.py --intake "2BHK apartment in Lusail for 8,500 QAR"` — or drop
+   an existing workbook at that path. Columns are matched by header name, so the
+   schema can grow without breaking anything.
 
 ## 5. First run
 

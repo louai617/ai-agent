@@ -69,6 +69,27 @@ def run_gui() -> int:
     return app.exec()
 
 
+def run_intake(text: str, property_ref: str | None = None) -> int:
+    """Run one natural-language listing intake and print the coordinator reply.
+
+    Example::
+
+        python main.py --intake "2BHK apartment in Lusail for 8,500 QAR"
+    """
+    from app.database.engine import init_engine
+    from app.services.coordinator import create_coordinator
+
+    init_engine()
+    coordinator = create_coordinator()
+    result = coordinator.intake(text, property_ref=property_ref)
+    print(f"Listing: {result.property_ref}  [{result.status.value}]")
+    print()
+    print(result.message)
+    print()
+    print(result.completeness.as_text())
+    return 0
+
+
 def run_web(host: str = "127.0.0.1", port: int = 8000) -> int:
     """Start the FastAPI web dashboard (browser interface to the agent)."""
     import uvicorn
@@ -87,8 +108,12 @@ def main() -> int:
     parser.add_argument("--web", action="store_true", help="run the browser dashboard (FastAPI)")
     parser.add_argument("--host", default="127.0.0.1", help="web server host (with --web)")
     parser.add_argument("--port", type=int, default=8000, help="web server port (with --web)")
+    parser.add_argument("--intake", metavar="TEXT", help="parse a natural-language listing and store it in Excel")
+    parser.add_argument("--ref", help="continue an existing listing (with --intake)")
     args = parser.parse_args()
     try:
+        if args.intake:
+            return run_intake(args.intake, args.ref)
         if args.web:
             return run_web(args.host, args.port)
         return run_headless() if args.headless else run_gui()
